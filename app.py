@@ -1,99 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Earned Media Value Estimator</title>
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-label, input, select, button { display: block; width: 100%; margin: 10px 0; }
-button { padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; }
-button:hover { background-color: #0056b3; }
-#result { margin-top: 20px; font-weight: bold; }
-</style>
-</head>
-<body>
-<h1>Earned Media Value Estimator</h1>
-<form id="emv-form">
-<label for="mediaType">Media Type:</label>
-<select name="mediaType" id="mediaType" required>
-<option value="online">Online</option>
-<option value="print">Print</option>
-<option value="podcast">Podcast</option>
-<option value="tv">Broadcast TV</option>
-<option value="radio">Radio</option>
-</select>
+import streamlit as st
+import pandas as pd
 
 
 
-<label for="outletName">Outlet Name:</label>
-<input type="text" name="outletName" id="outletName" required />
+st.set_page_config(page_title="Earned Media Value Estimator", layout="centered")
+st.title("💰 Earned Media Value Estimator")
 
 
 
-<label for="reach">Estimated Reach / Circulation:</label>
-<input type="number" name="reach" id="reach" required />
+media_type = st.selectbox("Select Media Type", ["Online", "Print", "Podcast"])
 
 
 
-<label>
-<input type="checkbox" name="useDefaultCPM" id="useDefaultCPM" checked />
-Use Default CPM?
-</label>
+def calculate_emv_online(uvm, cpm, quality_multiplier):
+return (uvm / 1000) cpm quality_multiplier
 
 
 
-<div id="customCPMField" style="display: none;">
-<label for="customCPM">Custom CPM ($):</label>
-<input type="number" name="customCPM" id="customCPM" step="0.01" />
-</div>
+def calculate_emv_print(circulation, ad_size_multiplier, prominence_multiplier, base_rate):
+return circulation ad_size_multiplier prominence_multiplier * base_rate / 1000
 
 
 
-<button type="submit">Estimate EMV</button>
-</form>
+def calculate_emv_podcast(listeners, cpm, segment_quality_multiplier):
+return (listeners / 1000) cpm segment_quality_multiplier
 
 
 
-<div id="result"></div>
+data = {}
 
 
 
-<script>
-const defaultCPMs = {
-online: 25,
-print: 35,
-podcast: 30,
-tv: 45,
-radio: 20
-};
+if media_type == "Online":
+uvm = st.number_input("Estimated Unique Monthly Visitors (UVM)", min_value=0)
+cpm = st.number_input("Industry CPM ($)", value=25.0)
+quality = st.selectbox("Coverage Quality", ["Mention", "Quote", "Feature"])
+quality_multiplier = {"Mention": 0.5, "Quote": 1.0, "Feature": 1.5}[quality]
 
 
 
-function calculateEMV(reach, cpm) {
-return (reach / 1000) * cpm;
-}
+if st.button("Estimate EMV"):
+emv = calculate_emv_online(uvm, cpm, quality_multiplier)
+data = {"Type": "Online", "UVM": uvm, "CPM": cpm, "Quality": quality, "Estimated EMV ($)": round(emv, 2)}
+st.success(f"Estimated EMV: ${round(emv, 2)}")
 
 
 
-document.getElementById('useDefaultCPM').addEventListener('change', function () {
-document.getElementById('customCPMField').style.display = this.checked ? 'none' : 'block';
-});
+elif media_type == "Print":
+circulation = st.number_input("Estimated Circulation", min_value=0)
+ad_size = st.selectbox("Ad Size", ["Mention", "Quarter Page", "Half Page", "Full Page"])
+prominence = st.selectbox("Prominence", ["Low", "Medium", "High"])
+base_rate = st.number_input("Base Print Rate (per 1K circ)", value=50.0)
 
 
 
-document.getElementById('emv-form').addEventListener('submit', function (e) {
-e.preventDefault();
-const mediaType = document.getElementById('mediaType').value;
-const reach = parseFloat(document.getElementById('reach').value);
-const useDefault = document.getElementById('useDefaultCPM').checked;
-const cpm = useDefault ? defaultCPMs[mediaType] : parseFloat(document.getElementById('customCPM').value);
+ad_size_multiplier = {"Mention": 0.3, "Quarter Page": 0.5, "Half Page": 0.75, "Full Page": 1.0}[ad_size]
+prominence_multiplier = {"Low": 0.75, "Medium": 1.0, "High": 1.25}[prominence]
 
 
 
-const emv = calculateEMV(reach, cpm);
-document.getElementById('result').textContent = Estimated Earned Media Value: $${emv.toFixed(2)};
-});
-</script>
-</body>
-</html>
+if st.button("Estimate EMV"):
+emv = calculate_emv_print(circulation, ad_size_multiplier, prominence_multiplier, base_rate)
+data = {"Type": "Print", "Circulation": circulation, "Ad Size": ad_size, "Prominence": prominence, "Estimated EMV ($)": round(emv, 2)}
+st.success(f"Estimated EMV: ${round(emv, 2)}")
+
+
+
+elif media_type == "Podcast":
+listeners = st.number_input("Estimated Listeners", min_value=0)
+cpm = st.number_input("Industry CPM ($)", value=30.0)
+segment_type = st.selectbox("Segment Type", ["Brief Mention", "Mid-Roll Mention", "Dedicated Segment"])
+segment_quality_multiplier = {"Brief Mention": 0.5, "Mid-Roll Mention": 1.0, "Dedicated Segment": 1.5}[segment_type]
+
+
+
+if st.button("Estimate EMV"):
+emv = calculate_emv_podcast(listeners, cpm, segment_quality_multiplier)
+data = {"Type": "Podcast", "Listeners": listeners, "Segment": segment_type, "Estimated EMV ($)": round(emv, 2)}
+st.success(f"Estimated EMV: ${round(emv, 2)}")
+
+
+
+# Show and export results
+if data:
+df = pd.DataFrame([data])
+st.dataframe(df)
+csv = df.to_csv(index=False).encode("utf-8")
+st.download_button("📥 Download CSV", data=csv, file_name="emv_estimate.csv")
