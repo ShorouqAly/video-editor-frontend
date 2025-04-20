@@ -1,31 +1,99 @@
-import streamlit as st
-import pandas as pd
-import random
-from datetime import datetime
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Earned Media Value Estimator</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+label, input, select, button { display: block; width: 100%; margin: 10px 0; }
+button { padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+button:hover { background-color: #0056b3; }
+#result { margin-top: 20px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Earned Media Value Estimator</h1>
+<form id="emv-form">
+<label for="mediaType">Media Type:</label>
+<select name="mediaType" id="mediaType" required>
+<option value="online">Online</option>
+<option value="print">Print</option>
+<option value="podcast">Podcast</option>
+<option value="tv">Broadcast TV</option>
+<option value="radio">Radio</option>
+</select>
 
-st.set_page_config(page_title="UVM Estimator", layout="centered")
 
-st.title("📊 UVM Estimator Tool")
-st.write("Paste in one or more media domains to estimate their Unique Monthly Visitors (UVM).")
 
-sample_domains = ["forbes.com", "nytimes.com", "techcrunch.com"]
+<label for="outletName">Outlet Name:</label>
+<input type="text" name="outletName" id="outletName" required />
 
-# Input form
-domains_input = st.text_area("Enter domains (one per line):", value="\n".join(sample_domains), height=150)
-run_estimate = st.button("Estimate UVM")
 
-def estimate_uvm(domain):
-    random.seed(domain)
-    uvm = random.randint(500000, 90000000)
-    confidence = random.choice(["High", "Medium", "Low"])
-    return {"Domain": domain, "Estimated UVM": uvm, "Confidence": confidence}
 
-if run_estimate:
-    domains = [d.strip() for d in domains_input.splitlines() if d.strip()]
-    results = [estimate_uvm(domain) for domain in domains]
-    df = pd.DataFrame(results)
-    st.success(f"✅ Estimated UVM for {len(df)} domains.")
-    st.dataframe(df)
+<label for="reach">Estimated Reach / Circulation:</label>
+<input type="number" name="reach" id="reach" required />
 
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("📥 Download CSV", data=csv, file_name=f"uvm_estimates_{datetime.now().strftime('%Y%m%d')}.csv")
+
+
+<label>
+<input type="checkbox" name="useDefaultCPM" id="useDefaultCPM" checked />
+Use Default CPM?
+</label>
+
+
+
+<div id="customCPMField" style="display: none;">
+<label for="customCPM">Custom CPM ($):</label>
+<input type="number" name="customCPM" id="customCPM" step="0.01" />
+</div>
+
+
+
+<button type="submit">Estimate EMV</button>
+</form>
+
+
+
+<div id="result"></div>
+
+
+
+<script>
+const defaultCPMs = {
+online: 25,
+print: 35,
+podcast: 30,
+tv: 45,
+radio: 20
+};
+
+
+
+function calculateEMV(reach, cpm) {
+return (reach / 1000) * cpm;
+}
+
+
+
+document.getElementById('useDefaultCPM').addEventListener('change', function () {
+document.getElementById('customCPMField').style.display = this.checked ? 'none' : 'block';
+});
+
+
+
+document.getElementById('emv-form').addEventListener('submit', function (e) {
+e.preventDefault();
+const mediaType = document.getElementById('mediaType').value;
+const reach = parseFloat(document.getElementById('reach').value);
+const useDefault = document.getElementById('useDefaultCPM').checked;
+const cpm = useDefault ? defaultCPMs[mediaType] : parseFloat(document.getElementById('customCPM').value);
+
+
+
+const emv = calculateEMV(reach, cpm);
+document.getElementById('result').textContent = Estimated Earned Media Value: $${emv.toFixed(2)};
+});
+</script>
+</body>
+</html>
