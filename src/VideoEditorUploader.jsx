@@ -18,7 +18,7 @@ export default function VideoEditorUploader() {
     if (music) formData.append("music", music);
 
     try {
-      const response = await axios.post("https://project-3-m16w.onrender.com/", formData, {
+      const response = await axios.post("https://project-3-m16w.onrender.com/create-video/", formData, {
         responseType: "blob",
         headers: { "Content-Type": "multipart/form-data" },
       });
